@@ -1,4 +1,4 @@
-# batch_pdf_form
+# batch pdf form filler
 
 This project was originally designed as a gift to my wife to automate her workflow by converting Excel or CSV data sheets into a predesigned fillable PDF form template. I want to further extand the functions and make it a handy tool for every one.
 
@@ -11,6 +11,10 @@ Install [PDF tk free version](https://www.pdflabs.com/tools/pdftk-the-pdf-toolki
 ```
     pip install -r requirements
 ```
+
+## Usage
+
+
 
 ## Acknowledgement
 
@@ -27,3 +31,10 @@ Thanks to [pdfforms](https://github.com/altaurog/pdfforms) for the original idea
 - [ ] Able to import new template and design new pattern to make the project more general
 - [ ] Nicer appearance (current layout is too ugly)
 - [ ] Able to stop generating process in the middle
+- [ ] Support more PDF form field types
+  - [x] Textbox field
+  - [ ] Checkbox
+  - [ ] Radio Button
+  - [ ] List of choices
+  - [ ] Dropdown list
+  - [ ] Signature (not planning to support)

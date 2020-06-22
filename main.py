@@ -9,7 +9,9 @@ import sys
 import xlrd
 # from time import sleep
 import PySimpleGUI as sg
-import ctypes.wintypes
+import ctypes
+from ctypes import windll, wintypes
+from uuid import UUID
 from datetime import date
 from subprocess import run, PIPE
 from locale import atof, setlocale, LC_NUMERIC
@@ -29,7 +31,7 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             [sg.Text('导入Excel/CSV 数据: ', font=("Helvetica", 16)), 
             sg.Input(key='-file-', enable_events=True, font=("Helvetica", 13), size=(30, 1)), sg.FileBrowse(font=("Helvetica", 16))],
             [sg.Text('输出文件夹名称', font=("Helvetica", 16)), 
-            sg.Input(default_text='Documents\\filled', size=(30, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
+            sg.Input(default_text='User\\Documents\\filled', size=(30, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
             sg.FolderBrowse(font=("Helvetica", 16))],
             [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
             sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0))],
@@ -37,6 +39,46 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
 
 window = sg.Window('Cheque Excel to PDF Converting System', layout)
 progress_bar = window['progress']
+
+
+class GUID(ctypes.Structure):
+    _fields_ = [
+        ("Data1", wintypes.DWORD),
+        ("Data2", wintypes.WORD),
+        ("Data3", wintypes.WORD),
+        ("Data4", wintypes.BYTE * 8)
+    ] 
+
+    def __init__(self, uuid_):
+        ctypes.Structure.__init__(self)
+        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
+        for i in range(2, 8):
+            self.Data4[i] = rest>>(8 - i - 1)*8 & 0xff
+
+
+class UserHandle:
+    current = wintypes.HANDLE(0)
+    common  = wintypes.HANDLE(-1)
+
+
+def get_path(folderid, user_handle=UserHandle.current):
+    _CoTaskMemFree = windll.ole32.CoTaskMemFree
+    _CoTaskMemFree.restype= None
+    _CoTaskMemFree.argtypes = [ctypes.c_void_p]
+
+    _SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+    _SHGetKnownFolderPath.argtypes = [
+        ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+    ] 
+
+    fid = GUID(folderid) 
+    pPath = ctypes.c_wchar_p()
+    S_OK = 0
+    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, user_handle, ctypes.byref(pPath)) != S_OK:
+        raise PathNotFoundException()
+    path = pPath.value
+    _CoTaskMemFree(pPath)
+    return path
 
 def inspect_pdfs(args):
     try:
@@ -61,12 +103,10 @@ def fill_pdfs(form_data, prefix='filled'):
     flatten = False
     status = 3 #working
     if prefix=='filled':
-        CSIDL_PERSONAL = 5       # My Documents
-        SHGFP_TYPE_CURRENT = 0   # Get current, not default value
-
-        buf= ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
-        ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf)
-        prefix = buf.value + "\\" + prefix
+        doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
+        doc_path = get_path(doc_id)
+        # ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf)
+        prefix = doc_path + "\\" + prefix
     fg = fill_forms(prefix, field_defs, form_data, flatten)
     # for filepath in fg:
     #     print(filepath)
