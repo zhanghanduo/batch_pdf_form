@@ -2,19 +2,20 @@
 import argparse
 import csv
 import io
+import copy
 import itertools
 import json
 import os
 import sys
 import xlrd
-# from time import sleep
+import pdfrw
 import PySimpleGUI as sg
 import ctypes
 from ctypes import windll, wintypes
 from uuid import UUID
 from datetime import date
 from subprocess import run, PIPE
-from locale import atof, setlocale, LC_NUMERIC
+# from locale import atof, setlocale, LC_NUMERIC
 
 index = 0
 # 0 not initialized, 1 error, 2 file read, 3 converting, 4 interrupted, 5 finished
@@ -109,7 +110,7 @@ def fill_pdfs(form_data, prefix='filled'):
         else:
             doc_path = str(os.path.join(Path.home(), 'Documents'))
         prefix = doc_path + "\\" + prefix
-    fg = fill_forms(prefix, field_defs, form_data, flatten)
+    fg = fill_forms_simple(prefix, form_data)
     # for filepath in fg:
     #     print(filepath)
 
@@ -118,7 +119,7 @@ def read_data(instream, datetime='today'):
     global status
     global max_row
     form_data = {}
-    setlocale(LC_NUMERIC, '')
+    # setlocale(LC_NUMERIC, '')
     if datetime == 'today':
         date_ = date.today()
         date_digit = date_.strftime('%d%m%y')
@@ -134,10 +135,11 @@ def read_data(instream, datetime='today'):
                     form_data[n_] = f = {}
                     f["0"] = date_digit
                     f["1"] = n_
-                    f["2"] = "$" + str(row[11])
-                    a = atof(row[11])
+                    # a = atof(row[11])
+                    a = float(str(v_).replace(',',''))
                     f["2"] = "$" + "{:,.2f}".format(a)
-                    f["4"] = "{:,.2f}".format(a)
+                    f["4"] = None
+                    f["3"] = "{:.2f}".format(a)
     elif instream.endswith('.xlsx') or instream.endswith('.xls'):
         wb = xlrd.open_workbook(instream)
         sheet = wb.sheet_by_index(0)
@@ -150,10 +152,12 @@ def read_data(instream, datetime='today'):
                 form_data[n_] = f = {}
                 f["0"] = date_digit
                 f["1"] = n_
-                f["2"] = "$" + str(v_)
-                a = atof(str(v_))
+                # a = atof(str(v_))
+                a = float(str(v_).replace(',',''))
+                # f["2"] = "$" + "{:,.2f}".format(a)
                 f["2"] = "$" + "{:,.2f}".format(a)
-                f["4"] = "{:,.2f}".format(a)
+                f["4"] = None
+                f["3"] = "{:.2f}".format(a)
     else:
         status = 1
     return form_data
@@ -200,6 +204,32 @@ def fill_forms(prefix, field_defs, data, flatten=True):
         progress_bar.update_bar(index, max_row)
     status = 5
     index = 0
+
+
+def fill_forms_simple(prefix, data):
+    global status
+    global index
+    # template_pdf = pdfrw.PdfReader('./template.pdf')
+    progress_bar.update(visible=True)
+    window['file_update'].update('生成中~~~')
+    for filename, formdata in data.items():
+        if not formdata:
+            continue
+        # yield filename
+        filepath = filename + '.pdf'
+        output_path = make_path(prefix, filepath)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        temp_ = pdfrw.PdfReader('./template.pdf')
+        temp_.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
+        for n, d in formdata.items():
+            if (d is not None):
+                temp_.Root.Pages.Kids[0].Annots[int(n)].update(pdfrw.PdfDict(V=d))
+        pdfrw.PdfWriter().write(output_path, temp_)
+        index += 1
+        progress_bar.update_bar(index, max_row)
+    status = 5
+    index = 0
+
 
 def generate_fdf(fields, data):
     fdf = io.StringIO()

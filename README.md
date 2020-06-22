@@ -6,7 +6,7 @@ This project was originally designed as a gift to my wife to automate her workfl
 
 Python 3.6+ environment
 
-Install [PDF tk free version](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/)
+~Install [PDF tk free version](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/)~
 
 ```
     pip install -r requirements
@@ -26,7 +26,8 @@ Thanks to [pdfforms](https://github.com/altaurog/pdfforms) for the original idea
 - [x] Batch generating PDFs on both Windows and Linux
 - [x] Basic and ugly GUI
 - [ ] Solve Chinese character path issues
-- [ ] More elegant way of working with PDF tk tool or get independent from it
+- [x] Use pdfrw instead of PDF tk tool to accelerate the process
+- [ ] More options for template and parameters
 - [ ] Inspect new PDF form and generate new template based on it
 - [ ] Able to import new template and design new pattern to make the project more general
 - [ ] Nicer appearance (current layout is too ugly)
