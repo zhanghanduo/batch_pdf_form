@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
-import argparse
 import csv
 import io
-import copy
-import itertools
-import json
 import os
 import sys
-import xlrd
+# import xlrd
+from openpyxl import load_workbook
 import pdfrw
 import PySimpleGUI as sg
-import ctypes
-from ctypes import windll, wintypes
-from uuid import UUID
 from datetime import date
 from subprocess import run, PIPE
+if os.name == 'nt':
+    import ctypes
+    from ctypes import windll, wintypes
+    from uuid import UUID
 # from locale import atof, setlocale, LC_NUMERIC
 
 index = 0
 # 0 not initialized, 1 error, 2 file read, 3 converting, 4 interrupted, 5 finished
 status = 0
 max_row = 0
+table_data = []
+header_list = ['CustCode', 'CustName', 'VouchDate', 'Voucher', 'ReffNo', ' ', 'Debit', ' ', 'Credit', ' ', 'Balance', 'Sum']
 # sg.theme('DarkAmber')
 date_ = date.today()
 date_digit = date_.strftime('%d%m%y')
@@ -36,10 +36,13 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             sg.FolderBrowse(font=("Helvetica", 16))],
             [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
             sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0))],
-            [sg.Text('进展:', font=("Helvetica", 16)), sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
+            [sg.Text('进展:', font=("Helvetica", 16)), sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)],
+            [sg.Table(values=[[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]], headings=header_list, max_col_width=14, auto_size_columns=True,
+            justification='left', alternating_row_color='lightblue', visible=False, key='-table-', num_rows=5)]]
 
-window = sg.Window('Cheque Excel to PDF Converting System', layout)
+window = sg.Window('Cheque Excel to PDF Converting System', layout, no_titlebar=True, grab_anywhere=True)
 progress_bar = window['progress']
+table_ = window['-table-']
 
 
 class GUID(ctypes.Structure):
@@ -81,18 +84,18 @@ def get_path(folderid, user_handle=UserHandle.current):
     _CoTaskMemFree(pPath)
     return path
 
-def inspect_pdfs(args):
-    try:
-        with open(args.field_defs, "r") as f:
-            field_defs = json.load(f)
-    except OSError:
-        field_defs = {}
-    for filename in args.pdf_file:
-        field_defs[filename] = inspect_pdf_fields(filename)
-    with open(args.field_defs, "w") as f:
-        json.dump(field_defs, f, indent=4)
-    test_data = generate_test_data(args.pdf_file, field_defs)
-    fg = fill_forms(args.prefix, field_defs, test_data, True)
+# def inspect_pdfs(args):
+#     try:
+#         with open(args.field_defs, "r") as f:
+#             field_defs = json.load(f)
+#     except OSError:
+#         field_defs = {}
+#     for filename in args.pdf_file:
+#         field_defs[filename] = inspect_pdf_fields(filename)
+#     with open(args.field_defs, "w") as f:
+#         json.dump(field_defs, f, indent=4)
+#     test_data = generate_test_data(args.pdf_file, field_defs)
+#     fg = fill_forms(args.prefix, field_defs, test_data, True)
     # for filepath in fg:
     #     print(filepath)
 
@@ -100,9 +103,9 @@ def inspect_pdfs(args):
 def fill_pdfs(form_data, prefix='filled'):
     global status
     # form_data = read_data(data_file, date)
-    field_defs = load_field_defs('.\\fields.json')
-    flatten = False
-    status = 3 #working
+    # field_defs = load_field_defs('.\\fields.json')
+    # flatten = False
+    status = 3  #working
     if prefix=='filled':
         if os.name == 'nt':
             doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
@@ -118,8 +121,9 @@ def fill_pdfs(form_data, prefix='filled'):
 def read_data(instream, datetime='today'):
     global status
     global max_row
+    # global header_list
+    global table_data
     form_data = {}
-    # setlocale(LC_NUMERIC, '')
     if datetime == 'today':
         date_ = date.today()
         date_digit = date_.strftime('%d%m%y')
@@ -128,7 +132,10 @@ def read_data(instream, datetime='today'):
 
     if instream.endswith('.csv'):
         with open(instream, encoding='utf-8') as csvfile:
-            for row in csv.reader(csvfile):
+            reader_ = csv.reader(csvfile)
+            # header_list = next(reader_)
+            table_data = list(reader_)
+            for row in reader_:
                 if row and row[11] and row[1]:
                     max_row +=1
                     n_ = str(row[1]).split(" -")[0]
@@ -136,14 +143,16 @@ def read_data(instream, datetime='today'):
                     f["0"] = date_digit
                     f["1"] = n_
                     # a = atof(row[11])
-                    a = float(str(v_).replace(',',''))
+                    a = float(str(row[11]).replace(',',''))
                     f["2"] = "$" + "{:,.2f}".format(a)
                     f["4"] = None
                     f["3"] = "{:.2f}".format(a)
     elif instream.endswith('.xlsx') or instream.endswith('.xls'):
-        wb = xlrd.open_workbook(instream)
-        sheet = wb.sheet_by_index(0)
-        sheet.cell_value(0, 0) 
+        wb = load_workbook(instream)
+        sheet = wb.active
+        # wb = xlrd.open_workbook(instream)
+        # sheet = wb.sheet_by_index(0)
+        # sheet.cell_value(0, 0) 
         for i in range(sheet.nrows):
             if sheet.cell_value(i, 1) and sheet.cell_value(i, 11):
                 max_row +=1
@@ -160,36 +169,39 @@ def read_data(instream, datetime='today'):
                 f["3"] = "{:.2f}".format(a)
     else:
         status = 1
+        sg.popup_error('Error reading file')
+        return
     return form_data
 
 
-def load_field_defs(defs_file):
-    with open(defs_file) as f:
-        return json.load(f)
+# def load_field_defs(defs_file):
+#     with open(defs_file) as f:
+#         return json.load(f)
 
 
-def inspect_pdf_fields(form_name):
-    cmd = ["pdftk", form_name, "dump_data_fields", "output", "-"]
-    p = run(cmd, stdout=PIPE, universal_newlines=True, check=True)
-    num = itertools.count()
-    fields = {}
-    for line in p.stdout.splitlines():
-        content = line.split(": ", 1)
-        if ["---"] == content:
-            fields[str(next(num))] = field_data = {}
-        elif 2 == len(content):
-            key = content[0][5:].lower()
-            if "stateoption" == key:
-                field_data.setdefault(key, []).append(content[1])
-            else:
-                field_data[key] = content[1]
-    return fields
+# def inspect_pdf_fields(form_name):
+#     cmd = ["pdftk", form_name, "dump_data_fields", "output", "-"]
+#     p = run(cmd, stdout=PIPE, universal_newlines=True, check=True)
+#     num = itertools.count()
+#     fields = {}
+#     for line in p.stdout.splitlines():
+#         content = line.split(": ", 1)
+#         if ["---"] == content:
+#             fields[str(next(num))] = field_data = {}
+#         elif 2 == len(content):
+#             key = content[0][5:].lower()
+#             if "stateoption" == key:
+#                 field_data.setdefault(key, []).append(content[1])
+#             else:
+#                 field_data[key] = content[1]
+#     return fields
 
 
 def fill_forms(prefix, field_defs, data, flatten=True):
     global status
     global index
     progress_bar.update(visible=True)
+    window.VisibilityChanged()
     window['file_update'].update('生成中~~~')
     for filename, formdata in data.items():
         if not formdata:
@@ -230,7 +242,7 @@ def fill_forms_simple(prefix, data):
     status = 5
     index = 0
 
-
+'''
 def generate_fdf(fields, data):
     fdf = io.StringIO()
     fdf.write(fdf_head)
@@ -284,6 +296,8 @@ def generate_test_data(pdf_files, field_defs):
                 d[field_id] = field_id
     return data
 
+'''
+
 
 def make_path(prefix, path):
     return prefix + "\\" + os.path.basename(path)
@@ -304,20 +318,24 @@ def main():
         if event == '-date-':
             date_ = values['-date-']
             window['date_update'].update('日期已输入')
+            # progress_bar.update(visible=False)
+            # window.VisibilityChanged()
         if event == '-file-':
             window['file_update'].update('文件地址已输入')
+            form_data = read_data(values['-file-'], date_)
+            status = 2
+            window['file_update'].update('数据已经导入')
+            table_.update(values=table_data, num_rows=min(len(table_data), 20), visible=True)
+            window.VisibilityChanged()
 
         if event == '-output-':
             prefix = values['-output-']
         if event == '批量生成PDF':
-            form_data = read_data(values['-file-'], date_)
-            status = 2
-            window['file_update'].update('数据已经导入')
-
-            if prefix is None:
-                fill_pdfs(form_data)
-            else:
-                fill_pdfs(form_data, str(prefix))
+            if(status == 2):
+                if prefix is None:
+                    fill_pdfs(form_data)
+                else:
+                    fill_pdfs(form_data, str(prefix))
 
         # print(event)
         if status == 5:

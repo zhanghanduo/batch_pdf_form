@@ -1,4 +1,5 @@
 import pdfrw
+import PySimpleGUI as sg
 
 def run():
     temp_ = pdfrw.PdfReader('./template.pdf')
@@ -10,4 +11,6 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    # run()
+    for item in sg.list_of_look_and_feel_values():
+        print(item)
