@@ -1,0 +1,39 @@
+{
+    ".\\input.pdf": {
+        "0": {
+            "type": "Text",
+            "name": "date4",
+            "flags": "29360128",
+            "value": "310320",
+            "justification": "Left",
+            "maxlength": "6"
+        },
+        "1": {
+            "type": "Text",
+            "name": "NAME4",
+            "flags": "0",
+            "value": "Able Fire Control Pte Ltd",
+            "justification": "Left"
+        },
+        "2": {
+            "type": "Text",
+            "name": "D4",
+            "flags": "0",
+            "value": "$133.75",
+            "justification": "Left"
+        },
+        "3": {
+            "type": "Text",
+            "name": "DD4",
+            "flags": "0",
+            "justification": "Left"
+        },
+        "4": {
+            "type": "Text",
+            "name": "DDD4",
+            "flags": "0",
+            "value": "133.75",
+            "justification": "Left"
+        }
+    }
+}
