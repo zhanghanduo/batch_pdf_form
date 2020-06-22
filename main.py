@@ -103,9 +103,11 @@ def fill_pdfs(form_data, prefix='filled'):
     flatten = False
     status = 3 #working
     if prefix=='filled':
-        doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
-        doc_path = get_path(doc_id)
-        # ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf)
+        if os.name == 'nt':
+            doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
+            doc_path = get_path(doc_id)
+        else:
+            doc_path = str(os.path.join(Path.home(), 'Documents'))
         prefix = doc_path + "\\" + prefix
     fg = fill_forms(prefix, field_defs, form_data, flatten)
     # for filepath in fg:

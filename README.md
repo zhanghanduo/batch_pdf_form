@@ -23,7 +23,7 @@ Thanks to [pdfforms](https://github.com/altaurog/pdfforms) for the original idea
 ## Roadmap
 
 - [x] Basic functions of reading Excel/CSV files
-- [x] Batch generating PDFs on Windows and Linux
+- [x] Batch generating PDFs on both Windows and Linux
 - [x] Basic and ugly GUI
 - [ ] Solve Chinese character path issues
 - [ ] More elegant way of working with PDF tk tool or get independent from it
@@ -31,6 +31,8 @@ Thanks to [pdfforms](https://github.com/altaurog/pdfforms) for the original idea
 - [ ] Able to import new template and design new pattern to make the project more general
 - [ ] Nicer appearance (current layout is too ugly)
 - [ ] Able to stop generating process in the middle
+- [ ] Data tree view pane for the imported data to preview
+- [ ] PDF Preview
 - [ ] Support more PDF form field types
   - [x] Textbox field
   - [ ] Checkbox
