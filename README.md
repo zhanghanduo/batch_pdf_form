@@ -32,13 +32,13 @@ Thanks to [pdfrw](https://github.com/pmaupin/pdfrw) for the pdf rendering and th
 - [x] Basic and ugly GUI
 - [x] Solve Chinese character path issues
 - [x] Use pdfrw instead of PDF tk tool to accelerate the process
-- [ ] More options for template and parameters
+- [x] More options for template and parameters
 - [ ] Inspect new PDF form and generate new template based on it
 - [ ] Able to import new template and design new pattern to make the project more general
 - [ ] Nicer appearance (current layout is too ugly)
 - [ ] Able to stop generating process in the middle
 - [x] Dataview pane for the imported data to preview
-- [ ] Change the column number to be imported and viewed
+- [x] Change the column number to be imported and viewed
 - [ ] PDF Preview
 - [ ] Support more PDF form field types
   - [x] Textbox field

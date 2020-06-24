@@ -18,6 +18,9 @@ index = 0
 # 0 not initialized, 1 error, 2 file read, 3 converting, 4 interrupted, 5 finished
 status = 0
 max_row = 0
+col_dict = {
+    "l": 11, "k": 10, "j": 9, "i": 8, "h": 7, "g": 6, "f": 5, "e": 4, "d": 3, "c": 2}
+col = 11
 table_data = [[]]
 header_list = []
 # sg.theme('DarkAmber')
@@ -35,7 +38,9 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             sg.FolderBrowse(font=("Helvetica", 16))],
             [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
             sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0))],
-            [sg.Text('进展:', font=("Helvetica", 16)), sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
+            [sg.Text('金额所在列:', font=("Helvetica", 16)), 
+            sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
+            sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
 
 window = sg.Window('Cheque Excel to PDF Converting System', layout, no_titlebar=True, grab_anywhere=True)
 progress_bar = window['progress']
@@ -116,6 +121,7 @@ def read_data(instream, datetime='today'):
     global max_row
     global header_list
     global table_data
+    global col
     form_data = {}
     header_list = []
     table_data = [[]]
@@ -130,15 +136,16 @@ def read_data(instream, datetime='today'):
     if instream.endswith('.csv'):
         with open(instream, encoding='utf-8') as csvfile:
             reader_ = csv.reader(csvfile)
+            next(reader_)
             for row in reader_:
-                if row and row[11] and row[1]:
+                if row and row[col] and row[1]:
                     max_row +=1
                     n_ = str(row[1]).split(" -")[0]
                     form_data[n_] = f = {}
                     f["0"] = date_digit
                     f["1"] = n_
-                    # a = atof(row[11])
-                    a = float(str(row[11]).replace(',',''))
+                    # a = atof(row[col])
+                    a = float(str(row[col]).replace(',',''))
                     f["2"] = "$" + "{:,.2f}".format(a)
                     f["4"] = None
                     f["3"] = "{:.2f}".format(a)
@@ -154,10 +161,10 @@ def read_data(instream, datetime='today'):
         for i in range(sheet.nrows):
             if i == 0:
                 header_list.extend(['No.', 'Cust Name', '总额($)'])
-            if sheet.cell_value(i, 1) and sheet.cell_value(i, 11):
+            elif sheet.cell_value(i, 1) and sheet.cell_value(i, col):
                 max_row +=1
                 n_ = str(sheet.cell_value(i, 1)).split(" -")[0]
-                v_ = sheet.cell_value(i, 11)
+                v_ = sheet.cell_value(i, col)
                 list_ = []
                 list_.extend([max_row, n_, v_])
                 table_data.append(list_)
@@ -311,9 +318,9 @@ def main():
     date_ = 'today'
     global status
     global max_row
+    global col
     form_data = {}
     table_exist = False
-    table_index = 0
 
     while True:
         event, values = window.read()
@@ -327,15 +334,15 @@ def main():
         if event == '-file-':
             window['file_update'].update('文件地址已输入')
             form_data = read_data(values['-file-'], date_)
-            window['file_update'].update('数据已经导入')
             if table_exist:
-                window['-table{table_index}-'].update(visible=False)
+                window['file_update'].update('数据已经更新')
+                window['-table-'].update(values=table_data, num_rows=min(len(table_data), 20))
             else:
                 table_exist = True
-            table_index += 1
-            window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
-            auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
-            key='-table{table_index}-', num_rows=min(len(table_data), 20))]])
+                window['file_update'].update('数据已经导入')
+                window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
+                auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
+                key='-table-', num_rows=min(len(table_data), 20))]])
 
         if event == '-output-':
             prefix = values['-output-']
@@ -345,6 +352,20 @@ def main():
                     fill_pdfs(form_data)
                 else:
                     fill_pdfs(form_data, str(prefix))
+        if event == '-col-':
+            if(values['-col-']):
+                col = col_dict[values['-col-'].lower()]
+                form_data = read_data(values['-file-'], date_)
+                window['file_update'].update('数据已经更新')
+                if table_exist:
+                    window['file_update'].update('数据已经更新')
+                    window['-table-'].update(values=table_data, num_rows=min(len(table_data), 20))
+                else:
+                    table_exist = True
+                    window['file_update'].update('数据已经导入')
+                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
+                    auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
+                    key='-table-', num_rows=min(len(table_data), 20))]])
 
         # print(event)
         if status == 5:
