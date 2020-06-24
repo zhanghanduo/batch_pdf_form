@@ -14,6 +14,11 @@ Python 3.6+ environment
 
 ## Usage
 
+You are suggested to install `pyinstaller` to generate executable file to run the program.
+
+```shell
+  pyinstaller -w -i .\office.ico --hidden-import xlrd --hidden-import pdfrw --noupx .\main.py
+```
 
 
 ## Acknowledgement
@@ -32,7 +37,8 @@ Thanks to [pdfrw](https://github.com/pmaupin/pdfrw) for the pdf rendering and th
 - [ ] Able to import new template and design new pattern to make the project more general
 - [ ] Nicer appearance (current layout is too ugly)
 - [ ] Able to stop generating process in the middle
-- [ ] Data tree view pane for the imported data to preview
+- [x] Dataview pane for the imported data to preview
+- [ ] Change the column number to be imported and viewed
 - [ ] PDF Preview
 - [ ] Support more PDF form field types
   - [x] Textbox field

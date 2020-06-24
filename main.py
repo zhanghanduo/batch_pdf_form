@@ -3,8 +3,7 @@ import csv
 import io
 import os
 import sys
-# import xlrd
-from openpyxl import load_workbook
+import xlrd
 import pdfrw
 import PySimpleGUI as sg
 from datetime import date
@@ -19,8 +18,8 @@ index = 0
 # 0 not initialized, 1 error, 2 file read, 3 converting, 4 interrupted, 5 finished
 status = 0
 max_row = 0
-table_data = []
-header_list = ['CustCode', 'CustName', 'VouchDate', 'Voucher', 'ReffNo', ' ', 'Debit', ' ', 'Credit', ' ', 'Balance', 'Sum']
+table_data = [[]]
+header_list = []
 # sg.theme('DarkAmber')
 date_ = date.today()
 date_digit = date_.strftime('%d%m%y')
@@ -36,13 +35,10 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             sg.FolderBrowse(font=("Helvetica", 16))],
             [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
             sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0))],
-            [sg.Text('进展:', font=("Helvetica", 16)), sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)],
-            [sg.Table(values=[[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]], headings=header_list, max_col_width=14, auto_size_columns=True,
-            justification='left', alternating_row_color='lightblue', visible=False, key='-table-', num_rows=5)]]
+            [sg.Text('进展:', font=("Helvetica", 16)), sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
 
 window = sg.Window('Cheque Excel to PDF Converting System', layout, no_titlebar=True, grab_anywhere=True)
 progress_bar = window['progress']
-table_ = window['-table-']
 
 
 class GUID(ctypes.Structure):
@@ -102,9 +98,6 @@ def get_path(folderid, user_handle=UserHandle.current):
 
 def fill_pdfs(form_data, prefix='filled'):
     global status
-    # form_data = read_data(data_file, date)
-    # field_defs = load_field_defs('.\\fields.json')
-    # flatten = False
     status = 3  #working
     if prefix=='filled':
         if os.name == 'nt':
@@ -121,9 +114,13 @@ def fill_pdfs(form_data, prefix='filled'):
 def read_data(instream, datetime='today'):
     global status
     global max_row
-    # global header_list
+    global header_list
     global table_data
     form_data = {}
+    header_list = []
+    table_data = [[]]
+    max_row = 0
+    status = 1
     if datetime == 'today':
         date_ = date.today()
         date_digit = date_.strftime('%d%m%y')
@@ -133,8 +130,6 @@ def read_data(instream, datetime='today'):
     if instream.endswith('.csv'):
         with open(instream, encoding='utf-8') as csvfile:
             reader_ = csv.reader(csvfile)
-            # header_list = next(reader_)
-            table_data = list(reader_)
             for row in reader_:
                 if row and row[11] and row[1]:
                     max_row +=1
@@ -147,17 +142,25 @@ def read_data(instream, datetime='today'):
                     f["2"] = "$" + "{:,.2f}".format(a)
                     f["4"] = None
                     f["3"] = "{:.2f}".format(a)
+        with open(instream, encoding='utf-8') as csvfile:
+            reader_ = csv.reader(csvfile)
+            header_list = next(reader_)
+            table_data = list(reader_)
+        status = 2
     elif instream.endswith('.xlsx') or instream.endswith('.xls'):
-        wb = load_workbook(instream)
-        sheet = wb.active
-        # wb = xlrd.open_workbook(instream)
-        # sheet = wb.sheet_by_index(0)
-        # sheet.cell_value(0, 0) 
+        wb = xlrd.open_workbook(instream)
+        sheet = wb.sheet_by_index(0)
+        sheet.cell_value(0, 0)
         for i in range(sheet.nrows):
+            if i == 0:
+                header_list.extend(['No.', 'Cust Name', '总额($)'])
             if sheet.cell_value(i, 1) and sheet.cell_value(i, 11):
                 max_row +=1
                 n_ = str(sheet.cell_value(i, 1)).split(" -")[0]
                 v_ = sheet.cell_value(i, 11)
+                list_ = []
+                list_.extend([max_row, n_, v_])
+                table_data.append(list_)
                 form_data[n_] = f = {}
                 f["0"] = date_digit
                 f["1"] = n_
@@ -167,10 +170,10 @@ def read_data(instream, datetime='today'):
                 f["2"] = "$" + "{:,.2f}".format(a)
                 f["4"] = None
                 f["3"] = "{:.2f}".format(a)
+        status = 2
     else:
         status = 1
         sg.popup_error('Error reading file')
-        return
     return form_data
 
 
@@ -308,6 +311,9 @@ def main():
     date_ = 'today'
     global status
     global max_row
+    form_data = {}
+    table_exist = False
+    table_index = 0
 
     while True:
         event, values = window.read()
@@ -318,20 +324,23 @@ def main():
         if event == '-date-':
             date_ = values['-date-']
             window['date_update'].update('日期已输入')
-            # progress_bar.update(visible=False)
-            # window.VisibilityChanged()
         if event == '-file-':
             window['file_update'].update('文件地址已输入')
             form_data = read_data(values['-file-'], date_)
-            status = 2
             window['file_update'].update('数据已经导入')
-            table_.update(values=table_data, num_rows=min(len(table_data), 20), visible=True)
-            window.VisibilityChanged()
+            if table_exist:
+                window['-table{table_index}-'].update(visible=False)
+            else:
+                table_exist = True
+            table_index += 1
+            window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
+            auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
+            key='-table{table_index}-', num_rows=min(len(table_data), 20))]])
 
         if event == '-output-':
             prefix = values['-output-']
         if event == '批量生成PDF':
-            if(status == 2):
+            if status == 2 and form_data:
                 if prefix is None:
                     fill_pdfs(form_data)
                 else:
