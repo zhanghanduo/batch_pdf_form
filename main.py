@@ -94,7 +94,7 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
             sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
 
-window = sg.Window('Cheque Excel to PDF Converting System', layout)
+window = sg.Window('Cheque Excel to PDF Converting System', layout, location=(200, 140))
 progress_bar = window['progress']
 
 
@@ -144,7 +144,7 @@ def read_data(instream, datetime='today'):
         with open(instream, encoding='utf-8') as csvfile:
             reader_ = csv.reader(csvfile)
             next(reader_)
-            header_list.extend(['No.', 'Cust Name', '总额($)'])
+            header_list.extend([' No. ', '          Cust Name          ', ' 总额($) '])
             for row in reader_:
                 if row and row[col] and row[1]:
                     max_row +=1
@@ -167,7 +167,7 @@ def read_data(instream, datetime='today'):
         sheet.cell_value(0, 0)
         for i in range(sheet.nrows):
             if i == 0:
-                header_list.extend(['No.', 'Cust Name', '总额($)'])
+                header_list.extend([' No. ', '          Cust Name          ', ' 总额($) '])
             elif sheet.cell_value(i, 1) and sheet.cell_value(i, col):
                 max_row +=1
                 n_ = str(sheet.cell_value(i, 1)).split(" -")[0]
@@ -374,9 +374,9 @@ def main():
                 else:
                     table_exist = True
                     window['file_update'].update('数据已经导入')
-                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=4, 
-                    auto_size_columns=True, justification='left', alternating_row_color='lightblue', header_text_color='blue',
-                    font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
+                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=100, 
+                    def_col_width=80, auto_size_columns=False, justification='left', alternating_row_color='lightblue', 
+                    header_text_color='blue', font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
         if event == '-view-':
             if prefix_path:
                 os.startfile(prefix_path)
