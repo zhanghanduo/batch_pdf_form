@@ -26,26 +26,7 @@ header_list = []
 # sg.theme('DarkAmber')
 date_ = date.today()
 date_digit = date_.strftime('%d%m%y')
-
-layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)), 
-            sg.Input(default_text=date_digit, font=("Helvetica", 16), key='-date-', enable_events=True, size=(6, 1)),
-            sg.CalendarButton('选择日期', font=("Helvetica", 16), auto_size_button=True, target='-date-', format='%d%m%y', default_date_m_d_y=(6,19,2020), ),
-            sg.StatusBar(text='默认今天', font=("Helvetica", 13), key='date_update', size=(12, 1))],
-            [sg.Text('导入Excel/CSV 数据: ', font=("Helvetica", 16)), 
-            sg.Input(key='-file-', enable_events=True, font=("Helvetica", 13), size=(30, 1)), sg.FileBrowse(font=("Helvetica", 16))],
-            [sg.Text('输出文件夹名称', font=("Helvetica", 16)), 
-            sg.Input(default_text='User\\Documents\\filled', size=(30, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
-            sg.FolderBrowse(font=("Helvetica", 16))],
-            [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
-            sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0))],
-            [sg.Text('金额所在列:', font=("Helvetica", 16)),
-            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', pad=(3, 3), font=("Helvetica", 14), key='-col-', enable_events=True),
-            # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
-            sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
-
-window = sg.Window('Cheque Excel to PDF Converting System', layout)
-progress_bar = window['progress']
-
+prefix_path = ''
 
 class GUID(ctypes.Structure):
     _fields_ = [
@@ -86,6 +67,37 @@ def get_path(folderid, user_handle=UserHandle.current):
     _CoTaskMemFree(pPath)
     return path
 
+
+if os.name == 'nt':
+    doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
+    doc_path = get_path(doc_id)
+    prefix_path = doc_path + "\\" + 'filled'
+else:
+    doc_path = str(os.path.join(Path.home(), 'Documents'))
+    prefix_path = doc_path + "/" + 'filled'
+
+
+layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)), 
+            sg.Input(default_text=date_digit, font=("Helvetica", 16), key='-date-', enable_events=True, size=(6, 1)),
+            sg.CalendarButton('选择日期', font=("Helvetica", 16), auto_size_button=True, target='-date-', format='%d%m%y', default_date_m_d_y=(6,19,2020), ),
+            sg.StatusBar(text='默认今天', font=("Helvetica", 13), key='date_update', size=(12, 1))],
+            [sg.Text('导入Excel/CSV 数据: ', font=("Helvetica", 16)), 
+            sg.Input(key='-file-', enable_events=True, font=("Helvetica", 13), size=(30, 1)), sg.FileBrowse(font=("Helvetica", 16))],
+            [sg.Text('输出文件夹名称', font=("Helvetica", 16)), 
+            sg.Input(default_text=prefix_path, size=(30, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
+            sg.FolderBrowse(font=("Helvetica", 16))],
+            [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
+            sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0)),
+            sg.Button('打开生成文件夹', font=("Helvetica", 16), key='-view-', visible=False)],
+            [sg.Text('金额所在列:', font=("Helvetica", 16)),
+            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', pad=(3, 3), font=("Helvetica", 14), key='-col-', enable_events=True),
+            # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
+            sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
+
+window = sg.Window('Cheque Excel to PDF Converting System', layout)
+progress_bar = window['progress']
+
+
 # def inspect_pdfs(args):
 #     try:
 #         with open(args.field_defs, "r") as f:
@@ -102,16 +114,10 @@ def get_path(folderid, user_handle=UserHandle.current):
     #     print(filepath)
 
 
-def fill_pdfs(form_data, prefix='filled'):
+def fill_pdfs(form_data, prefix):
     global status
+    global prefix_path
     status = 3  #working
-    if prefix=='filled':
-        if os.name == 'nt':
-            doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
-            doc_path = get_path(doc_id)
-        else:
-            doc_path = str(os.path.join(Path.home(), 'Documents'))
-        prefix = doc_path + "\\" + prefix
     fg = fill_forms_simple(prefix, form_data)
     # for filepath in fg:
     #     print(filepath)
@@ -232,6 +238,7 @@ def fill_forms(prefix, field_defs, data, flatten=True):
 def fill_forms_simple(prefix, data):
     global status
     global index
+    global output_path
     # template_pdf = pdfrw.PdfReader('./template.pdf')
     progress_bar.update(visible=True)
     window['file_update'].update('生成中~~~')
@@ -320,6 +327,7 @@ def main():
     global status
     global max_row
     global col
+    global prefix_path
     form_data = {}
     table_exist = False
 
@@ -350,9 +358,10 @@ def main():
         if event == '批量生成PDF':
             if status == 2 and form_data:
                 if prefix is None:
-                    fill_pdfs(form_data)
+                    fill_pdfs(form_data, prefix_path)
                 else:
                     fill_pdfs(form_data, str(prefix))
+                    prefix_path = str(prefix)
         if event == '-col-':
             if values['-col-']:
                 input = values['-col-'].lower()
@@ -368,11 +377,15 @@ def main():
                     window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
                     auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
                     key='-table-', num_rows=min(len(table_data), 20))]])
-
+        if event == '-view-':
+            if prefix_path:
+                os.startfile(prefix_path)
+                print(prefix_path)
 
         # print(event)
         if status == 5:
             window['file_update'].update('任务完成!')
+            window['-view-'].update(visible=True)
             max_row = 0
             status = 0
 
