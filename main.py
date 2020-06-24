@@ -38,11 +38,12 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             sg.FolderBrowse(font=("Helvetica", 16))],
             [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
             sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0))],
-            [sg.Text('金额所在列:', font=("Helvetica", 16)), 
-            sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
+            [sg.Text('金额所在列:', font=("Helvetica", 16)),
+            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', pad=(3, 3), font=("Helvetica", 14), key='-col-', enable_events=True),
+            # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
             sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
 
-window = sg.Window('Cheque Excel to PDF Converting System', layout, no_titlebar=True, grab_anywhere=True)
+window = sg.Window('Cheque Excel to PDF Converting System', layout)
 progress_bar = window['progress']
 
 
@@ -244,7 +245,7 @@ def fill_forms_simple(prefix, data):
         temp_ = pdfrw.PdfReader('./template.pdf')
         temp_.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
         for n, d in formdata.items():
-            if (d is not None):
+            if d is not None:
                 temp_.Root.Pages.Kids[0].Annots[int(n)].update(pdfrw.PdfDict(V=d))
         pdfrw.PdfWriter().write(output_path, temp_)
         index += 1
@@ -353,8 +354,9 @@ def main():
                 else:
                     fill_pdfs(form_data, str(prefix))
         if event == '-col-':
-            if(values['-col-']):
-                col = col_dict[values['-col-'].lower()]
+            if values['-col-']:
+                input = values['-col-'].lower()
+                col = col_dict[input]
                 form_data = read_data(values['-file-'], date_)
                 window['file_update'].update('数据已经更新')
                 if table_exist:
@@ -366,6 +368,7 @@ def main():
                     window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
                     auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
                     key='-table-', num_rows=min(len(table_data), 20))]])
+
 
         # print(event)
         if status == 5:
