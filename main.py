@@ -23,7 +23,7 @@ col_dict = {
 col = 11
 table_data = [[]]
 header_list = []
-# sg.theme('DarkAmber')
+sg.theme('LightBrown3')
 date_ = date.today()
 date_digit = date_.strftime('%d%m%y')
 prefix_path = ''
@@ -90,7 +90,7 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0)),
             sg.Button('打开生成文件夹', font=("Helvetica", 16), key='-view-', visible=False)],
             [sg.Text('金额所在列:', font=("Helvetica", 16)),
-            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', pad=(3, 3), font=("Helvetica", 14), key='-col-', enable_events=True),
+            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', font=("Helvetica", 13), pad=(3, 3), key='-col-', enable_events=True),
             # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
             sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
 
@@ -144,22 +144,22 @@ def read_data(instream, datetime='today'):
         with open(instream, encoding='utf-8') as csvfile:
             reader_ = csv.reader(csvfile)
             next(reader_)
+            header_list.extend(['No.', 'Cust Name', '总额($)'])
             for row in reader_:
                 if row and row[col] and row[1]:
                     max_row +=1
                     n_ = str(row[1]).split(" -")[0]
                     form_data[n_] = f = {}
+                    list_ = []
+                    list_.extend([max_row, n_, str(row[col])])
+                    table_data.append(list_)
                     f["0"] = date_digit
                     f["1"] = n_
                     # a = atof(row[col])
                     a = float(str(row[col]).replace(',',''))
-                    f["2"] = "$" + "{:,.2f}".format(a)
+                    f["2"] = "$" + "{:.2f}".format(a)
                     f["4"] = None
                     f["3"] = "{:.2f}".format(a)
-        with open(instream, encoding='utf-8') as csvfile:
-            reader_ = csv.reader(csvfile)
-            header_list = next(reader_)
-            table_data = list(reader_)
         status = 2
     elif instream.endswith('.xlsx') or instream.endswith('.xls'):
         wb = xlrd.open_workbook(instream)
@@ -172,18 +172,18 @@ def read_data(instream, datetime='today'):
                 max_row +=1
                 n_ = str(sheet.cell_value(i, 1)).split(" -")[0]
                 v_ = sheet.cell_value(i, col)
-                list_ = []
-                list_.extend([max_row, n_, v_])
-                table_data.append(list_)
                 form_data[n_] = f = {}
                 f["0"] = date_digit
                 f["1"] = n_
                 # a = atof(str(v_))
                 a = float(str(v_).replace(',',''))
                 # f["2"] = "$" + "{:,.2f}".format(a)
-                f["2"] = "$" + "{:,.2f}".format(a)
+                f["2"] = "$" + "{:.2f}".format(a)
                 f["4"] = None
                 f["3"] = "{:.2f}".format(a)
+                list_ = []
+                list_.extend([max_row, n_, f["3"]])
+                table_data.append(list_)
         status = 2
     else:
         status = 1
@@ -350,8 +350,8 @@ def main():
                 table_exist = True
                 window['file_update'].update('数据已经导入')
                 window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
-                auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
-                key='-table-', num_rows=min(len(table_data), 20))]])
+                auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='teal',
+                font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
 
         if event == '-output-':
             prefix = values['-output-']
@@ -374,9 +374,9 @@ def main():
                 else:
                     table_exist = True
                     window['file_update'].update('数据已经导入')
-                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
-                    auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='blue',
-                    key='-table-', num_rows=min(len(table_data), 20))]])
+                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=4, 
+                    auto_size_columns=True, justification='left', alternating_row_color='lightblue', header_text_color='blue',
+                    font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
         if event == '-view-':
             if prefix_path:
                 os.startfile(prefix_path)
