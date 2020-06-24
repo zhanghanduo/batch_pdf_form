@@ -79,22 +79,25 @@ else:
 
 layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)), 
             sg.Input(default_text=date_digit, font=("Helvetica", 16), key='-date-', enable_events=True, size=(6, 1)),
-            sg.CalendarButton('选择日期', font=("Helvetica", 16), auto_size_button=True, target='-date-', format='%d%m%y', default_date_m_d_y=(6,19,2020), ),
-            sg.StatusBar(text='默认今天', font=("Helvetica", 13), key='date_update', size=(12, 1))],
-            [sg.Text('导入Excel/CSV 数据: ', font=("Helvetica", 16)), 
-            sg.Input(key='-file-', enable_events=True, font=("Helvetica", 13), size=(30, 1)), sg.FileBrowse(font=("Helvetica", 16))],
-            [sg.Text('输出文件夹名称', font=("Helvetica", 16)), 
-            sg.Input(default_text=prefix_path, size=(30, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
-            sg.FolderBrowse(font=("Helvetica", 16))],
+            sg.CalendarButton('选择日期', font=("Helvetica", 16), auto_size_button=True, target='-date-', format='%d%m%y', default_date_m_d_y=(6,19,2020), )],
+            # sg.StatusBar(text='默认今天', font=("Helvetica", 13), key='date_update', size=(12, 1))],
+            [sg.Text('导入Excel/CSV: ', font=("Helvetica", 16)), 
+            sg.Input(key='-file-', enable_events=True, font=("Helvetica", 13), size=(30, 1)), 
+            sg.FileBrowse(button_text='打开文件', font=("Helvetica", 16))],
+            [sg.Text('输出文件夹', font=("Helvetica", 16)), 
+            sg.Input(default_text=prefix_path, size=(35, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
+            sg.FolderBrowse(button_text='打开文件夹', font=("Helvetica", 16))],
             [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
-            sg.StatusBar(text=' ', key='file_update', font=("Helvetica", 16), size=(12, 1), auto_size_text=True, pad=(10, 0)),
+            sg.StatusBar(text='就绪', key='file_update', font=("Helvetica", 16), size=(12, 1), 
+            justification='center', auto_size_text=True, pad=(10, 7)),
             sg.Button('打开生成文件夹', font=("Helvetica", 16), key='-view-', visible=False)],
             [sg.Text('金额所在列:', font=("Helvetica", 16)),
-            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', font=("Helvetica", 13), pad=(3, 3), key='-col-', enable_events=True),
+            sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', 
+            font=("Helvetica", 13), pad=(3, 3), key='-col-', size=(2, 1), enable_events=True),
             # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
-            sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False)]]
+            sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False, pad=(10, 1))]]
 
-window = sg.Window('Cheque Excel to PDF Converting System', layout, location=(200, 140))
+window = sg.Window('Cheque Excel to PDF Converting System', layout, location=(250, 130))
 progress_bar = window['progress']
 
 
@@ -150,16 +153,16 @@ def read_data(instream, datetime='today'):
                     max_row +=1
                     n_ = str(row[1]).split(" -")[0]
                     form_data[n_] = f = {}
-                    list_ = []
-                    list_.extend([max_row, n_, str(row[col])])
-                    table_data.append(list_)
                     f["0"] = date_digit
                     f["1"] = n_
-                    # a = atof(row[col])
                     a = float(str(row[col]).replace(',',''))
-                    f["2"] = "$" + "{:.2f}".format(a)
+                    a_str = "{:,.2f}".format(a)
+                    f["2"] = "$" + a_str
                     f["4"] = None
                     f["3"] = "{:.2f}".format(a)
+                    list_ = []
+                    list_.extend([max_row, n_, a_str])
+                    table_data.append(list_)
         status = 2
     elif instream.endswith('.xlsx') or instream.endswith('.xls'):
         wb = xlrd.open_workbook(instream)
@@ -177,12 +180,12 @@ def read_data(instream, datetime='today'):
                 f["1"] = n_
                 # a = atof(str(v_))
                 a = float(str(v_).replace(',',''))
-                # f["2"] = "$" + "{:,.2f}".format(a)
-                f["2"] = "$" + "{:.2f}".format(a)
+                a_str = "{:,.2f}".format(a)
+                f["2"] = "$" + a_str
                 f["4"] = None
-                f["3"] = "{:.2f}".format(a)
+                f["3"] = str("{:.2f}".format(a))
                 list_ = []
-                list_.extend([max_row, n_, f["3"]])
+                list_.extend([max_row, n_, a_str])
                 table_data.append(list_)
         status = 2
     else:
@@ -375,7 +378,7 @@ def main():
                     table_exist = True
                     window['file_update'].update('数据已经导入')
                     window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=100, 
-                    def_col_width=80, auto_size_columns=False, justification='left', alternating_row_color='lightblue', 
+                    pad=(30, 10), auto_size_columns=False, justification='left', alternating_row_color='lightblue', 
                     header_text_color='blue', font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
         if event == '-view-':
             if prefix_path:
