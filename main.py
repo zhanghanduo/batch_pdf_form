@@ -79,21 +79,22 @@ else:
     prefix_path = doc_path + "/" + 'filled'
 
 
-layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)), 
-            sg.Input(default_text=date_digit, font=("Helvetica", 16), key='-date-', enable_events=True, size=(6, 1)),
-            sg.CalendarButton('选择日期', font=("Helvetica", 16), auto_size_button=True, target='-date-', format='%d%m%y', default_date_m_d_y=(6,19,2020), )],
+layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 15)), 
+            sg.Input(default_text=date_digit, font=("Helvetica", 15), key='-date-', enable_events=True, size=(6, 1)),
+            sg.CalendarButton('选择日期', font=("Helvetica", 15), auto_size_button=True, target='-date-', format='%d%m%y', default_date_m_d_y=(6,19,2020) )],
             # sg.StatusBar(text='默认今天', font=("Helvetica", 13), key='date_update', size=(12, 1))],
-            [sg.Text('导入Excel/CSV: ', font=("Helvetica", 16)), 
+            # sg.Checkbox('合并PDF', default=False, size=(10, 1), key='-merge-', font=("Helvetica", 15))],
+            [sg.Text('导入Excel/CSV: ', font=("Helvetica", 15)), 
             sg.Input(key='-file-', enable_events=True, font=("Helvetica", 13), size=(30, 1)), 
-            sg.FileBrowse(button_text='打开文件', font=("Helvetica", 16))],
-            [sg.Text('输出文件夹', font=("Helvetica", 16)), 
+            sg.FileBrowse(button_text='打开文件', font=("Helvetica", 15))],
+            [sg.Text('输出文件夹', font=("Helvetica", 15)), 
             sg.Input(default_text=prefix_path, size=(35, 1), font=("Helvetica", 13), key='-output-', enable_events=True),
-            sg.FolderBrowse(button_text='打开文件夹', font=("Helvetica", 16))],
-            [sg.Button('批量生成PDF', font=("Helvetica", 16)), sg.Button('Exit', font=("Helvetica", 16)),
-            sg.StatusBar(text='就绪', key='file_update', font=("Helvetica", 16), size=(12, 1), 
+            sg.FolderBrowse(button_text='打开文件夹', font=("Helvetica", 15))],
+            [sg.Button('批量生成PDF', font=("Helvetica", 15)), sg.Button('Exit', font=("Helvetica", 15)),
+            sg.StatusBar(text='就绪', key='file_update', font=("Helvetica", 15), size=(12, 1), 
             justification='center', auto_size_text=True, pad=(10, 7)),
-            sg.Button('打开生成文件夹', font=("Helvetica", 16), key='-view-', visible=False)],
-            [sg.Text('总额所在列:', font=("Helvetica", 16)),
+            sg.Button('打开生成文件夹', font=("Helvetica", 15), key='-view-', visible=False)],
+            [sg.Text('总额所在列:', font=("Helvetica", 15)),
             sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', 
             font=("Helvetica", 13), pad=(3, 3), key='-col-', size=(2, 1), enable_events=True),
             # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
@@ -123,7 +124,7 @@ def fill_pdfs(form_data, prefix):
     global status
     global prefix_path
     status = 3  #working
-    fg = fill_forms_simple(prefix, form_data)
+    fg = fill_forms(prefix, form_data)
     # for filepath in fg:
     #     print(filepath)
 
@@ -219,34 +220,35 @@ def read_data(instream, datetime='today'):
 #     return fields
 
 
-def fill_forms(prefix, field_defs, data, flatten=True):
-    global status
-    global index
-    progress_bar.update(visible=True)
-    window.VisibilityChanged()
-    window['file_update'].update('生成中~~~')
-    for filename, formdata in data.items():
-        if not formdata:
-            continue
-        # yield filename
-        filepath = filename + '.pdf'
-        output_path = make_path(prefix, filepath)
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        fdf_str = generate_fdf(field_defs[".\\template.pdf"], formdata)
-        fill_form(filepath, fdf_str, output_path, flatten)
-        index += 1
-        progress_bar.update_bar(index, max_row)
-    status = 5
-    index = 0
+# def fill_forms(prefix, field_defs, data, flatten=True):
+#     global status
+#     global index
+#     progress_bar.update(visible=True)
+#     window.VisibilityChanged()
+#     window['file_update'].update('生成中~~~')
+#     for filename, formdata in data.items():
+#         if not formdata:
+#             continue
+#         # yield filename
+#         filepath = filename + '.pdf'
+#         output_path = make_path(prefix, filepath)
+#         os.makedirs(os.path.dirname(output_path), exist_ok=True)
+#         fdf_str = generate_fdf(field_defs[".\\template.pdf"], formdata)
+#         fill_form(filepath, fdf_str, output_path, flatten)
+#         index += 1
+#         progress_bar.update_bar(index, max_row)
+#     status = 5
+#     index = 0
 
-
-def fill_forms_simple(prefix, data):
+def fill_forms(prefix, data):
     global status
     global index
     global output_path
-    # template_pdf = pdfrw.PdfReader('./template.pdf')
+        
     progress_bar.update(visible=True)
     window['file_update'].update('生成中~~~')
+    temp_ = pdfrw.PdfReader('./template.pdf')
+
     for filename, formdata in data.items():
         if not formdata:
             continue
@@ -254,72 +256,17 @@ def fill_forms_simple(prefix, data):
         filepath = filename + '.pdf'
         output_path = make_path(prefix, filepath)
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        temp_ = pdfrw.PdfReader('./template.pdf')
         temp_.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
         for n, d in formdata.items():
             if d is not None:
                 temp_.Root.Pages.Kids[0].Annots[int(n)].update(pdfrw.PdfDict(V=d))
         pdfrw.PdfWriter().write(output_path, temp_)
+
         index += 1
         progress_bar.update_bar(index, max_row)
+
     status = 5
     index = 0
-
-'''
-def generate_fdf(fields, data):
-    fdf = io.StringIO()
-    fdf.write(fdf_head)
-    fdf.write("\n".join(fdf_fields(fields, data)))
-    fdf.write(fdf_tail)
-    return fdf.getvalue()
-
-
-fdf_head = """%FDF-1.2
-%âãÏÓ
-1 0 obj 
-<< /FDF 
-<< /Fields [
-"""
-
-fdf_tail = """
-] >> >>
-endobj 
-trailer
-<< /Root 1 0 R >>
-%%EOF
-"""
-
-
-def fdf_fields(fields, data):
-    template = "<< /T ({field_name}) /V ({data}) >>"
-    for n, d in data.items():
-        field_def = fields.get(n)
-        if field_def:
-            field_name = field_def.get("name")
-            if field_name:
-                yield template.format(field_name=field_name, data=d)
-
-
-def fill_form(input_path, fdf, output_path, flatten):
-    cmd = ["pdftk", './template.pdf',
-            "fill_form", "-",
-            "output", output_path]
-    if flatten:
-        cmd.append("flatten")
-    run(cmd, input=fdf.encode("utf-8"), check=True)
-
-
-def generate_test_data(pdf_files, field_defs):
-    data = {}
-    for filepath in pdf_files:
-        fields = field_defs.get(filepath, {})
-        data[filepath] = d = {}
-        for field_id, field_def in fields.items():
-            if "Text" == field_def.get("type"):
-                d[field_id] = field_id
-    return data
-
-'''
 
 
 def make_path(prefix, path):
@@ -348,15 +295,16 @@ def main():
         if event == '-file-':
             window['file_update'].update('文件地址已输入')
             form_data = read_data(values['-file-'], date_)
-            if table_exist:
-                window['file_update'].update('数据已经更新')
-                window['-table-'].update(values=table_data, num_rows=min(len(table_data), 17))
-            else:
-                table_exist = True
-                window['file_update'].update('数据已经导入')
-                window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=40, 
-                auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='teal',
-                font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 17), pad=(26, 2))]])
+            if status == 2:
+                if table_exist:
+                    window['file_update'].update('数据已经更新')
+                    window['-table-'].update(values=table_data, num_rows=min(len(table_data), 17))
+                else:
+                    table_exist = True
+                    window['file_update'].update('数据已经导入')
+                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=40, 
+                    auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='teal',
+                    font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 17), pad=(26, 2))]])
 
         if event == '-output-':
             prefix = values['-output-']
@@ -378,8 +326,11 @@ def main():
                     window['-table-'].update(values=table_data, num_rows=min(len(table_data), 30))
         if event == '-view-':
             if prefix_path:
-                os.startfile(prefix_path)
-                print(prefix_path)
+                if os.name == 'nt':
+                    os.startfile(prefix_path)
+                else:
+                    opener ="open" if sys.platform == "darwin" else "xdg-open"
+                    subprocess.call([opener, prefix_path])
 
         # print(event)
         if status == 5:

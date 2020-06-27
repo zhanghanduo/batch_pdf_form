@@ -20,6 +20,7 @@ You are suggested to install `pyinstaller` to generate executable file to run th
   pyinstaller -w -i .\office.ico --hidden-import xlrd --hidden-import pdfrw --noupx .\main.py
 ```
 
+![Screenshot](./data/screenshot.png)
 
 ## Acknowledgement
 
