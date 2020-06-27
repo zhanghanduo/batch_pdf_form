@@ -12,6 +12,8 @@ if os.name == 'nt':
     import ctypes
     from ctypes import windll, wintypes
     from uuid import UUID
+else:
+    from pathlib import Path
 # from locale import atof, setlocale, LC_NUMERIC
 
 index = 0
@@ -28,47 +30,47 @@ date_ = date.today()
 date_digit = date_.strftime('%d%m%y')
 prefix_path = ''
 
-class GUID(ctypes.Structure):
-    _fields_ = [
-        ("Data1", wintypes.DWORD),
-        ("Data2", wintypes.WORD),
-        ("Data3", wintypes.WORD),
-        ("Data4", wintypes.BYTE * 8)
-    ] 
-
-    def __init__(self, uuid_):
-        ctypes.Structure.__init__(self)
-        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
-        for i in range(2, 8):
-            self.Data4[i] = rest>>(8 - i - 1)*8 & 0xff
-
-
-class UserHandle:
-    current = wintypes.HANDLE(0)
-    common  = wintypes.HANDLE(-1)
-
-
-def get_path(folderid, user_handle=UserHandle.current):
-    _CoTaskMemFree = windll.ole32.CoTaskMemFree
-    _CoTaskMemFree.restype= None
-    _CoTaskMemFree.argtypes = [ctypes.c_void_p]
-
-    _SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
-    _SHGetKnownFolderPath.argtypes = [
-        ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
-    ] 
-
-    fid = GUID(folderid) 
-    pPath = ctypes.c_wchar_p()
-    S_OK = 0
-    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, user_handle, ctypes.byref(pPath)) != S_OK:
-        raise PathNotFoundException()
-    path = pPath.value
-    _CoTaskMemFree(pPath)
-    return path
-
 
 if os.name == 'nt':
+    class GUID(ctypes.Structure):
+        _fields_ = [
+            ("Data1", wintypes.DWORD),
+            ("Data2", wintypes.WORD),
+            ("Data3", wintypes.WORD),
+            ("Data4", wintypes.BYTE * 8)
+        ] 
+
+        def __init__(self, uuid_):
+            ctypes.Structure.__init__(self)
+            self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
+            for i in range(2, 8):
+                self.Data4[i] = rest>>(8 - i - 1)*8 & 0xff
+
+
+    class UserHandle:
+        current = wintypes.HANDLE(0)
+        common  = wintypes.HANDLE(-1)
+
+
+    def get_path(folderid, user_handle=UserHandle.current):
+        _CoTaskMemFree = windll.ole32.CoTaskMemFree
+        _CoTaskMemFree.restype= None
+        _CoTaskMemFree.argtypes = [ctypes.c_void_p]
+
+        _SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+        _SHGetKnownFolderPath.argtypes = [
+            ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+        ] 
+
+        fid = GUID(folderid) 
+        pPath = ctypes.c_wchar_p()
+        S_OK = 0
+        if _SHGetKnownFolderPath(ctypes.byref(fid), 0, user_handle, ctypes.byref(pPath)) != S_OK:
+            raise PathNotFoundException()
+        path = pPath.value
+        _CoTaskMemFree(pPath)
+        return path
+
     doc_id = UUID('{FDD39AD0-238F-46AF-ADB4-6C85480369C7}')
     doc_path = get_path(doc_id)
     prefix_path = doc_path + "\\" + 'filled'
@@ -91,13 +93,13 @@ layout = [[sg.Text('输入日期 (如:190520): ', font=("Helvetica", 16)),
             sg.StatusBar(text='就绪', key='file_update', font=("Helvetica", 16), size=(12, 1), 
             justification='center', auto_size_text=True, pad=(10, 7)),
             sg.Button('打开生成文件夹', font=("Helvetica", 16), key='-view-', visible=False)],
-            [sg.Text('金额所在列:', font=("Helvetica", 16)),
+            [sg.Text('总额所在列:', font=("Helvetica", 16)),
             sg.Combo(values=['L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C'], default_value='L', 
             font=("Helvetica", 13), pad=(3, 3), key='-col-', size=(2, 1), enable_events=True),
             # sg.Input(default_text="L", font=("Helvetica", 13), key='-col-', enable_events=True, size=(2, 1)),
             sg.ProgressBar(max_value=10, orientation='h', size=(40, 22), key='progress', visible=False, pad=(10, 1))]]
 
-window = sg.Window('Cheque Excel to PDF Converting System', layout, location=(250, 130))
+window = sg.Window('Cheque Excel to PDF Converting System', layout, location=(250, 40))
 progress_bar = window['progress']
 
 
@@ -348,13 +350,13 @@ def main():
             form_data = read_data(values['-file-'], date_)
             if table_exist:
                 window['file_update'].update('数据已经更新')
-                window['-table-'].update(values=table_data, num_rows=min(len(table_data), 20))
+                window['-table-'].update(values=table_data, num_rows=min(len(table_data), 17))
             else:
                 table_exist = True
                 window['file_update'].update('数据已经导入')
-                window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=14, 
+                window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=40, 
                 auto_size_columns=True, justification='left', alternating_row_color='lightyellow', header_text_color='teal',
-                font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
+                font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 17), pad=(26, 2))]])
 
         if event == '-output-':
             prefix = values['-output-']
@@ -369,17 +371,11 @@ def main():
             if values['-col-']:
                 input = values['-col-'].lower()
                 col = col_dict[input]
-                form_data = read_data(values['-file-'], date_)
-                window['file_update'].update('数据已经更新')
+                # form_data = read_data(values['-file-'], date_)
+                # window['file_update'].update('数据已经更新')
                 if table_exist:
                     window['file_update'].update('数据已经更新')
-                    window['-table-'].update(values=table_data, num_rows=min(len(table_data), 20))
-                else:
-                    table_exist = True
-                    window['file_update'].update('数据已经导入')
-                    window.extend_layout(window, [[sg.Table(values=table_data, headings=header_list, max_col_width=100, 
-                    pad=(30, 10), auto_size_columns=False, justification='left', alternating_row_color='lightblue', 
-                    header_text_color='blue', font=("Helvetica", 13), key='-table-', num_rows=min(len(table_data), 20))]])
+                    window['-table-'].update(values=table_data, num_rows=min(len(table_data), 30))
         if event == '-view-':
             if prefix_path:
                 os.startfile(prefix_path)
