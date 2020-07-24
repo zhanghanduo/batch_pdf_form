@@ -25,7 +25,7 @@ col_dict = {
 col = 11
 table_data = [[]]
 header_list = []
-sg.theme('LightBrown3')
+sg.theme('Material1')
 date_ = date.today()
 date_digit = date_.strftime('%d%m%y')
 prefix_path = ''
@@ -140,6 +140,7 @@ def read_data(instream, datetime='today'):
     table_data = [[]]
     max_row = 0
     status = 1
+    date_digit = ''
     if datetime == 'today':
         date_ = date.today()
         date_digit = date_.strftime('%d%m%y')
@@ -291,7 +292,7 @@ def main():
             break
         if event == '-date-':
             date_ = values['-date-']
-            window['date_update'].update('日期已输入')
+            # window['date_update'].update('日期已输入')
         if event == '-file-':
             window['file_update'].update('文件地址已输入')
             form_data = read_data(values['-file-'], date_)
@@ -319,11 +320,11 @@ def main():
             if values['-col-']:
                 input = values['-col-'].lower()
                 col = col_dict[input]
-                # form_data = read_data(values['-file-'], date_)
-                # window['file_update'].update('数据已经更新')
                 if table_exist:
+                    form_data = read_data(values['-file-'], date_)
                     window['file_update'].update('数据已经更新')
                     window['-table-'].update(values=table_data, num_rows=min(len(table_data), 30))
+
         if event == '-view-':
             if prefix_path:
                 if os.name == 'nt':
